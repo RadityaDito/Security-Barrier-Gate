@@ -21,6 +21,7 @@ ARCHITECTURE Behavioral OF Security_Barrier_Gate IS
     -- Deklarasi Signal
     SIGNAL Current_State, Next_State : FSM_States;
     SIGNAL Counter_Wait : STD_LOGIC_VECTOR(31 DOWNTO 0);
+    SIGNAL RED_TEMP, GREEN_TEMP : STD_LOGIC;
 BEGIN
 
     -- Sequential Process
@@ -110,4 +111,63 @@ BEGIN
         END CASE;
     END PROCESS;
 
+    -- Process Wait For Password
+    PROCESS (Clock, Reset)
+    BEGIN
+        IF (Reset = '0') THEN
+            Counter_Wait <= (OTHERS => '0');
+        ELSIF (rising_edge(Clock)) THEN
+            IF (Current_State = WAIT_PASSWORD) THEN
+                Counter_Wait <= Counter_Wait + x"00000001";
+            ELSE
+                Counter_Wait <= (OTHERS => '0');
+            END IF;
+        END IF;
+    END PROCESS;
+
+    -- Process Displaying Output
+    PROCESS (Clock, Current_State)
+    BEGIN
+        IF (rising_edge(Clock)) THEN
+            CASE (Current_State) IS
+                WHEN IDLE =>
+                    -- GREEN LED dan RED LED akan mati dan 7-segment display OFF
+                    GREEN_TEMP <= '0'; -- GREEN LED mati
+                    RED_TEMP <= '0'; -- RED LED mati
+                    HEX_1 <= "1111111"; -- OFF
+                    HEX_2 <= "1111111"; -- OFF   
+                WHEN WAIT_PASSWORD =>
+                    -- RED LED akan menyala dan 7-segment display akan menampilkan 'En' untuk memberitahu pengguna untuk menginput password kembali
+                    GREEN_TEMP <= '0'; -- GREEN LED mati
+                    RED_TEMP <= '1'; -- RED LED menyala
+                    HEX_1 <= "0000110"; -- Menampilkan "E" pada 7-segment display
+                    HEX_2 <= "0101011"; -- Menaampilkan "n" pada 7-segment display
+                WHEN WRONG_PASS =>
+                    -- Ketika password salah maka RED LED akan berkedip dan 7-segment display akan menampilkan 'EE' untuk memberitahu pengguna bahwa password yang dimasukkan salah
+                    GREEN_TEMP <= '0'; -- GREEN LED mati
+                    RED_TEMP <= NOT RED_TEMP; -- RED LED berkedip
+                    HEX_1 <= "0000110"; -- Menampilkan "E" pada 7-segment display
+                    HEX_2 <= "0000110"; -- Menampilkan "E" pada 7-segment display
+                WHEN RIGHT_PASS =>
+                    -- Ketika password benar maka GREEN LED akan berkedip dan 7-segment display akan menampilkan '60' untuk memberitahu pengguna bahwa password yang dimasukkan benar
+                    GREEN_TEMP <= NOT GREEN_TEMP; -- GREEN LED berkedip
+                    RED_TEMP <= '0'; --RED LED mati
+                    HEX_1 <= "0000010"; -- Menampilkan "6" pada 7-segment display
+                    HEX_2 <= "1000000"; -- Menampilkan "0" pada 7-segment display
+                WHEN STOP =>
+                    -- Ketika mobil sudah melewati barrier dan ada mobil lagi dibelakangnya maka RED LED akan berkedip dan 7-segment display akan menampilkan "SP" untuk memberitahu pengguna bahwa mobil yang sekarang harus berhenti dan menginput password
+                    GREEN_TEMP <= '0'; -- GREEN LED mati
+                    RED_TEMP <= NOT RED_TEMP; -- RED LED berkedip
+                    HEX_1 <= "0010010"; -- Menampilkan "S" pada 7-segment display
+                    HEX_2 <= "0001100"; -- Menampilkan "P" pada 7-segment display
+                WHEN OTHERS =>
+                    GREEN_TEMP <= '0'; -- GREEN LED mati
+                    RED_TEMP <= '0'; -- RED LED mati
+                    HEX_1 <= "1111111"; -- 7-segment display OFF
+                    HEX_2 <= "1111111"; -- 7-segment display OFF
+            END CASE;
+        END IF;
+    END PROCESS;
+    RED_LED <= RED_TEMP;
+    GREEN_LED <= GREEN_TEMP;
 END ARCHITECTURE Behavioral;
