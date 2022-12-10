@@ -12,5 +12,5 @@ Contributors names
 Raditya Ihsan Dhiaulhaq [@RadityaDito](https://github.com/RadityaDito)<br/>
 Shabrina Kamiliya Wiyana [@skamiliya](https://github.com/skamiliya)<br/>
 Rakha Argya Zahran [@Rakha28](https://github.com/Rakha28)<br/>
-Muhammad Zaki Nur Said Hanan [@FarrelAN](https://github.com/FarrelAN)<br/>
-Farrel Athaillah Nugroho [@ZakiHan](https://github.com/ZakiHan)<br/>
+Muhammad Zaki Nur Said Hanan [@ZakiHan](https://github.com/ZakiHan)<br/>
+M. Farrel Athaillah Nugroho [@FarrelAN](https://github.com/FarrelAN)<br/>
