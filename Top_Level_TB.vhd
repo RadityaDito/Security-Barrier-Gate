@@ -11,7 +11,7 @@ ARCHITECTURE behavior OF Top_Level_TB IS
             -- Input 
             Clock, Reset : IN STD_LOGIC; -- Clock dan Reset
             Front_Sensor, Back_Sensor : IN STD_LOGIC; -- Sensor depan dan belakang
-            Password_1 : IN STD_LOGIC_VECTOR(5 DOWNTO 0); -- Input Password
+            Password_1 : IN INTEGER; -- Input Password
             -- Output
             GREEN_LED, RED_LED : OUT STD_LOGIC; -- LED sebagai signal fisik
             HEX_1, HEX_2 : OUT STD_LOGIC_VECTOR(6 DOWNTO 0) := "1111111" -- 7-Segment Display
@@ -22,7 +22,7 @@ ARCHITECTURE behavior OF Top_Level_TB IS
     SIGNAL Reset : STD_LOGIC := '0';
     SIGNAL Front_Sensor : STD_LOGIC := '0';
     SIGNAL Back_Sensor : STD_LOGIC := '0';
-    SIGNAL Password_1 : STD_LOGIC_VECTOR(5 DOWNTO 0) := (OTHERS => '0');
+    SIGNAL Password_1 : INTEGER := 0;
 
     -- Deklarasi signal dari output
     SIGNAL GREEN_LED : STD_LOGIC;
@@ -58,21 +58,21 @@ BEGIN
         Reset <= '0';
         Front_Sensor <= '0';
         Back_Sensor <= '0';
-        Password_1 <= "101000";
+        Password_1 <= 1234;
         WAIT FOR PERIOD * 10;
         Reset <= '1';
         WAIT FOR PERIOD * 10;
         Front_Sensor <= '1';
         WAIT FOR PERIOD * 10;
-        Password_1 <= "101010";
+        Password_1 <= 1234;
         WAIT UNTIL HEX_1 = "0000010"; -- Menampilkan "G" pada 7-segment display
-        Password_1 <= "101000";
+        Password_1 <= 1234;
         Back_Sensor <= '1';
         WAIT UNTIL HEX_1 = "0010010"; -- Menampilkan "S" pada 7-segment display
-        Password_1 <= "101010";
+        Password_1 <= 1234;
         front_sensor <= '0';
         WAIT UNTIL HEX_1 = "0000010"; -- Menampilkan "G" pada 7-segment display
-        Password_1 <= "101000";
+        Password_1 <= 1234;
         Back_Sensor <= '1';
         WAIT UNTIL HEX_1 = "1111111"; -- 7-segment display OFF
         Back_Sensor <= '0';

@@ -8,7 +8,7 @@ ENTITY Security_Barrier_Gate IS
         --Input 
         Clock, Reset : IN STD_LOGIC; -- Clock dan Reset
         Front_Sensor, Back_Sensor : IN STD_LOGIC; -- Sensor depan dan belakang
-        Password_1 : IN STD_LOGIC_VECTOR(5 DOWNTO 0); -- Input Password
+        Password_1 : IN INTEGER; -- Input Password
         -- Output
         GREEN_LED, RED_LED : OUT STD_LOGIC; -- LED sebagai signal fisik
         HEX_1, HEX_2 : OUT STD_LOGIC_VECTOR(6 DOWNTO 0) -- 7-Segment Display
@@ -16,13 +16,41 @@ ENTITY Security_Barrier_Gate IS
 END ENTITY Security_Barrier_Gate;
 
 ARCHITECTURE Behavioral OF Security_Barrier_Gate IS
+
+    COMPONENT md5_hash IS
+        PORT (
+            data_in : IN STD_LOGIC_VECTOR (31 DOWNTO 0);
+            data_out : OUT STD_LOGIC_VECTOR (127 DOWNTO 0) := (OTHERS => '0');
+            hash_done : OUT STD_LOGIC := '0';
+            hash_start : IN STD_LOGIC;
+            clk : IN STD_LOGIC;
+            reset : IN STD_LOGIC);
+    END COMPONENT md5_hash;
+
     -- Deklarasi State
     TYPE FSM_States IS (IDLE, WAIT_PASSWORD, WRONG_PASS, RIGHT_PASS, STOP);
     -- Deklarasi Signal
     SIGNAL Current_State, Next_State : FSM_States;
     SIGNAL Counter_Wait : STD_LOGIC_VECTOR(31 DOWNTO 0);
     SIGNAL RED_TEMP, GREEN_TEMP : STD_LOGIC;
+    SIGNAL hash_out : STD_LOGIC_VECTOR(127 DOWNTO 0) := (OTHERS => '0');
+    SIGNAL hash_out_temp : STD_LOGIC_VECTOR(127 DOWNTO 0) := (OTHERS => '0');
+    SIGNAL start, done : STD_LOGIC := '0';
+    SIGNAL hash_reset : STD_LOGIC := '1';
+    SIGNAL password_in : STD_LOGIC_VECTOR(31 DOWNTO 0);
+    -- CONSTANT password : STD_LOGIC_VECTOR(127 DOWNTO 0) := x"70AFE0E2DEA65F690BB5D321FCF86BF8";
+    CONSTANT password : STD_LOGIC_VECTOR(127 DOWNTO 0) := x"0BEC9DCF8DDC060274087BEB58724B3F";
 BEGIN
+    -- password_in <= STD_LOGIC_VECTOR(to_unsigned(Password_1, password_in'length));
+
+    hash : md5_hash PORT MAP(
+        data_in => password_in,
+        data_out => hash_out,
+        hash_done => done,
+        hash_start => start,
+        clk => clock,
+        reset => hash_reset
+    );
 
     -- Sequential Process
     PROCESS (Clock, Reset)
@@ -41,9 +69,13 @@ BEGIN
 
                 -- State IDLE 
             WHEN IDLE =>
+                hash_reset <= '1';
                 -- Ketika Front_Sensor mendeteksi mobil, maka state akan berubah menjadi WAIT_PASSWORD
                 IF (Front_Sensor = '1') THEN
                     Next_State <= WAIT_PASSWORD;
+                    password_in <= STD_LOGIC_VECTOR(to_unsigned(Password_1, password_in'length));
+                    -- hash_in <= Password_1 & "00000000000000000000000000";
+                    start <= '1';
                 ELSE
                     -- Ketika Front_Sensor tidak mendeteksi mobil, maka state akan tetap IDLE
                     Next_State <= IDLE;
@@ -59,27 +91,31 @@ BEGIN
                 ELSE
                     -- Setiap 4 clock cycle, Counter_Wait akan memeriksa password dan kemudian direset
                     -- Password_1 = 101010
-                    IF ((Password_1 = "010110"))
-                        THEN
-                        -- Apabila password benar, maka state akan berubah menjadi RIGHT_PASS
-                        Next_State <= RIGHT_PASS;
-                    ELSE
-                        -- Apabila password salah, maka state akan berubah menjadi WRONG_PASS dan meminta input password lagi
-                        Next_State <= WRONG_PASS;
+                    hash_out_temp <= hash_out;
+                    IF (done = '1') THEN
+                        IF ((hash_out_temp = password)) THEN
+                            -- Apabila password benar, maka state akan berubah menjadi RIGHT_PASS
+                            Next_State <= RIGHT_PASS;
+                            start <= '0';
+                            hash_reset <= '0';
+                        ELSE
+                            -- Apabila password salah, maka state akan berubah menjadi WRONG_PASS dan meminta input password lagi
+                            Next_State <= WRONG_PASS;
+                        END IF;
                     END IF;
+
                 END IF;
 
                 -- State WRONG_PASS
             WHEN WRONG_PASS =>
                 -- Password_1 = 101010
-                IF ((Password_1 = "010110")) THEN
+                IF ((hash_out_temp = password)) THEN
                     -- Apabila password benar, maka state akan berubah menjadi RIGHT_PASS
                     Next_State <= RIGHT_PASS;
                 ELSE
                     -- Apabila password salah, maka state akan berubah menjadi WRONG_PASS dan meminta input password lagi sehingga menciptakan looping apabila password terus-menerus salah
                     Next_State <= WRONG_PASS;
                 END IF;
-
                 -- State RIGHT_PASS
             WHEN RIGHT_PASS =>
                 -- Ketika mobil berhasil melewati barrier, maka state akan berubah menjadi STOP
@@ -97,14 +133,13 @@ BEGIN
                 -- State STOP
             WHEN STOP =>
                 -- Password_1 = 101010
-                IF ((Password_1 = "010110")) THEN
+                IF ((hash_out_temp = password)) THEN
                     -- Apabila password benar, maka state akan berubah menjadi RIGHT_PASS
                     Next_State <= RIGHT_PASS;
                 ELSE
                     --  Apabila password salah, maka state akan berubah menjadi STOP dan meminta input password lagi sehingga menciptakan looping apabila password terus-menerus salah
                     Next_State <= STOP;
                 END IF;
-
                 -- Default State
                 -- Apabila tidak terdapat kondisi yang terpenuhi
             WHEN OTHERS => Next_State <= IDLE;
